@@ -180,20 +180,25 @@ def upload(request):
                 destination.write(chunk)
 
         request.session['uploaded_file'] = file_name
+        request.session['encoded_string'] = encoded_string
 
-        return redirect('output', file_name=file_name, encoded_string=encoded_string)
+        return redirect('output', file_name=file_name)
 
     return render(request, "upload.html", {'full_name': full_name })
 
 
-
 @login_required(login_url='login')
-def output(request, file_name, encoded_string):
+def output(request, file_name):
     full_name = request.user.name if request.user.is_authenticated else ""
     file_path = os.path.join(settings.MEDIA_ROOT, "uploads", file_name)
 
     if not os.path.exists(file_path):
         return HttpResponseNotFound("File not found.")
+
+    encoded_string = request.session.get('encoded_string', None)
+    if not encoded_string:
+        return HttpResponseNotFound("Encoded string not found.")
+    del request.session['encoded_string']
 
     image_data = read_image(file_path)
 
@@ -214,7 +219,7 @@ def output(request, file_name, encoded_string):
             'extracted_text': result.data,
             'file_url': file_url,
             'lang': lang,
-            'encoded_string':encoded_string
+            'encoded_string': encoded_string
         })
     except Exception as e:
         return HttpResponseNotFound(str(e))
