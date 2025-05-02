@@ -15,7 +15,8 @@ urlpatterns = [
     path('translate/', views.translate_text, name='translate'),
     path('logout/', LogoutView.as_view(next_page='index'), name='logout'),
     path('upload/', views.upload, name='upload'),
-    path('output/<str:file_name>/', views.output, name='output'),
+    # path('output/<str:file_name>/', views.output, name='output'),
+    path('output/<str:file_name>/<str:encoded_string>/', views.output, name='output'),
     path('spell_check/', views.spell_check, name='spell_check'),
     path('delete-uploaded-file/', views.delete_uploaded_file, name='delete_uploaded_file'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
