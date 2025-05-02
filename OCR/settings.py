@@ -31,7 +31,13 @@ SECRET_KEY = 'django-insecure-wwur+3%m4)_tx$u8((jmgon=lg_nsyvt^5=m-3x9aiag_d+cus
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 ALLOWED_HOSTS = ['*']
 
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_URL = '/static/' # This is important for serving static files
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # This is important for collectstatic
+
+# Optional (helps whitenoise find static files)
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static'),
+]
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
@@ -47,13 +53,12 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'web',
-
-    
 ]
 
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -63,7 +68,6 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
-
 
 
 # Caching Configuration
@@ -96,26 +100,25 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER =  os.environ.get('SENDER_MAIL_ID')
-EMAIL_HOST_PASSWORD =  os.environ.get('SENDER_PASSWORD')  
+EMAIL_HOST_USER = os.environ.get('SENDER_MAIL_ID')
+EMAIL_HOST_PASSWORD = os.environ.get('SENDER_PASSWORD')
 WSGI_APPLICATION = 'OCR.wsgi.application'
 
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-# filepath: d:\OCR\ezyZip\OCR\settings.py
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.environ.get('DATABASE_NAME'),  
-        'USER': os.environ.get('DATABASE_USER'),  
-        'PASSWORD': os.environ.get('DATABASE_PASSWORD'),  
-        'HOST': os.environ.get('DATABASE_HOST'),  
-        'PORT': int(os.environ.get('DATABASE_PORT')),  
+        'NAME': os.environ.get('DATABASE_NAME'),
+        'USER': os.environ.get('DATABASE_USER'),
+        'PASSWORD': os.environ.get('DATABASE_PASSWORD'),
+        'HOST': os.environ.get('DATABASE_HOST'),
+        'PORT': int(os.environ.get('DATABASE_PORT')),
         'OPTIONS': {
             'connect_timeout': 10,
-            'ssl': {'ssl_cert_reqs': ssl.CERT_NONE},  
+            'ssl': {'ssl_cert_reqs': ssl.CERT_NONE},
         }
     }
 }
@@ -155,17 +158,8 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-# STATIC_URL = 'static/'
-
 SESSION_COOKIE_AGE = 3600  # 1 hour (in seconds)
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # Expires when the user closes the browser
-
-
-STATIC_URL = "/static/"
- # This is where collectstatic will collect files
-
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -176,6 +170,5 @@ AUTHENTICATION_BACKENDS = [
 AUTH_USER_MODEL = 'web.CustomUser'
 
 CSRF_TRUSTED_ORIGINS = ['*']
-
 
 # @127.0.0.1:3306
