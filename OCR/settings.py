@@ -133,4 +133,4 @@ USE_TZ = True
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Allow Railway or external domains
-CSRF_TRUSTED_ORIGINS = ['https://web-production-15c8c.up.railway.app']
+CSRF_TRUSTED_ORIGINS = ['https://synergyocr.up.railway.app/']

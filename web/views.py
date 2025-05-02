@@ -47,9 +47,6 @@ def generate_verification_code():
 def forgot_password(request):
     return render(request, 'forgot_password.html')
 
-
-
-
 @csrf_exempt
 def send_verification_code(request):
     if request.method == 'POST':
