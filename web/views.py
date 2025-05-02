@@ -1,6 +1,7 @@
 import os
 import json
 import random
+import base64
 import asyncio
 import smtplib
 from textblob import TextBlob
@@ -172,6 +173,7 @@ def upload(request):
         uploaded_file = request.FILES['file']
         file_name = uploaded_file.name
         file_path = os.path.join(settings.MEDIA_ROOT, "uploads", file_name)
+        encoded_string = base64.b64encode(uploaded_file.read()).decode('utf-8')
 
         with open(file_path, 'wb+') as destination:
             for chunk in uploaded_file.chunks():
@@ -179,14 +181,14 @@ def upload(request):
 
         request.session['uploaded_file'] = file_name
 
-        return redirect('output', file_name=file_name)
+        return redirect('output', file_name=file_name, encoded_string=encoded_string)
 
-    return render(request, "upload.html", {'full_name': full_name})
+    return render(request, "upload.html", {'full_name': full_name })
 
 
 
 @login_required(login_url='login')
-def output(request, file_name):
+def output(request, file_name, encoded_string):
     full_name = request.user.name if request.user.is_authenticated else ""
     file_path = os.path.join(settings.MEDIA_ROOT, "uploads", file_name)
 
@@ -211,7 +213,8 @@ def output(request, file_name):
             'full_name': full_name,
             'extracted_text': result.data,
             'file_url': file_url,
-            'lang': lang
+            'lang': lang,
+            'encoded_string':encoded_string
         })
     except Exception as e:
         return HttpResponseNotFound(str(e))
