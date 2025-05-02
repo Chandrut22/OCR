@@ -133,5 +133,6 @@ USE_TZ = True
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://*.up.railway.app",  # Wildcard for all Railway subdomains (use only if needed)
+    "https://*.up.railway.app",
+    "https://*.onrender.com"  # Wildcard for all Railway subdomains (use only if needed)
 ]
