@@ -31,13 +31,8 @@ SECRET_KEY = 'django-insecure-wwur+3%m4)_tx$u8((jmgon=lg_nsyvt^5=m-3x9aiag_d+cus
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 ALLOWED_HOSTS = ['*']
 
-STATIC_URL = '/static/' # This is important for serving static files
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # This is important for collectstatic
-
-# Optional (helps whitenoise find static files)
-STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static'),
-]
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # This is where static files will be stored after collectstatic.
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
