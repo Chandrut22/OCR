@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}OCR - Upload{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="upload-container">
+        <h1>Upload Image or Document for OCR</h1>
+        <p>Upload an image or document to extract text content.</p>
+
+        <div class="upload-area" id="drop-area">
+            <form method="post" enctype="multipart/form-data" class="upload-form" id="upload-form">
+                {% csrf_token %}
+                <input type="file" id="fileInput" name="file" accept="image/png, image/jpeg, image/jpg, application/pdf" hidden>
+                <label for="fileInput" class="file-label">
+                    <div class="upload-icon">
+                        <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                    </div>
+                    <span>Drag & drop files here or click to browse</span>
+                </label>
+                <p class="file-info">Supported formats: JPG, PNG, PDF</p>
+            </form>
+        </div>
+
+        <div class="upload-preview hidden" id="preview-area">
+            <h3>Selected File</h3>
+            <div class="preview-content">
+                <div class="preview-image">
+                    <img id="image-preview" src="{% static 'images/placeholder.svg' %}" alt="Preview">
+                </div>
+                <div class="preview-details">
+                    <p id="file-name">No file selected</p>
+                    <p id="file-size"></p>
+                    <button type="button" class="btn btn-outline" id="remove-file">Remove</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="upload-actions">
+            <button type="button" class="btn btn-primary" id="process-btn" disabled>Process Document</button>
+        </div>
+    </div>
+</div>
+
+<div id="loading-screen" class="loading-overlay hidden">
+    <div class="loading-spinner">
+        <img style="border-radius: 50%; border: none; width: 40%; height: 40%;" src="{% static 'images/sgv-loading.gif' %}" alt="Loading...">
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.loading-spinner {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.loading-spinner img {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    border: none;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const processBtn = document.getElementById("process-btn");
+    const form = document.getElementById("upload-form");
+    const loadingScreen = document.getElementById("loading-screen");
+    const dropArea = document.getElementById("drop-area");
+    const fileInput = document.getElementById("fileInput");
+    const previewArea = document.getElementById("preview-area");
+    const imagePreview = document.getElementById("image-preview");
+    const fileName = document.getElementById("file-name");
+    const fileSize = document.getElementById("file-size");
+    const removeFileBtn = document.getElementById("remove-file");
+
+    // Prevent default drag behaviors
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(event => {
+        dropArea.addEventListener(event, e => {
+            e.preventDefault();
+            e.stopPropagation();
+        }, false);
+    });
+
+    // Highlight drop area
+    ['dragenter', 'dragover'].forEach(event => {
+        dropArea.addEventListener(event, () => dropArea.classList.add("highlight"), false);
+    });
+
+    ['dragleave', 'drop'].forEach(event => {
+        dropArea.addEventListener(event, () => dropArea.classList.remove("highlight"), false);
+    });
+
+    // Handle file drop
+    dropArea.addEventListener("drop", function (e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        if (files.length > 0) {
+            fileInput.files = files;  // Set dropped file into file input
+            handleFiles(files);
+        }
+    });
+
+    // Handle file selection via input
+    fileInput.addEventListener("change", function () {
+        handleFiles(this.files);
+    });
+
+    function handleFiles(files) {
+        const file = files[0];
+        if (!file) return;
+
+        fileName.textContent = file.name;
+        fileSize.textContent = formatFileSize(file.size);
+
+        if (file.type.startsWith("image/")) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                imagePreview.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        } else if (file.type === "application/pdf") {
+            imagePreview.src = "{% static 'images/pdf.png' %}";
+        } else {
+            alert("Unsupported file format! Please upload a JPG, PNG, or PDF.");
+            return;
+        }
+
+        previewArea.classList.remove("hidden");
+        processBtn.disabled = false;
+    }
+
+    function formatFileSize(bytes) {
+        const sizes = ["Bytes", "KB", "MB", "GB"];
+        const i = Math.floor(Math.log(bytes) / Math.log(1024));
+        return (bytes / Math.pow(1024, i)).toFixed(2) + " " + sizes[i];
+    }
+
+    removeFileBtn.addEventListener("click", function () {
+        fileInput.value = "";
+        previewArea.classList.add("hidden");
+        processBtn.disabled = true;
+    });
+
+    processBtn.addEventListener("click", function () {
+        loadingScreen.classList.remove("hidden");
+        setTimeout(() => {
+            form.submit();
+        }, 500);
+    });
+
+    // Hide loading screen on load
+    loadingScreen.classList.add("hidden");
+});
+</script>
+{% endblock %}

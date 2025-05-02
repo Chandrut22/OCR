@@ -1,0 +1,327 @@
+{% extends "base.html" %}
+{% block title %}OCR - Output{% endblock %}
+
+{% block content %}
+    <div class="container">
+        <div class="results-container">
+            <div class="results-header">
+                <h1>OCR Results</h1>
+                <div class="results-actions">
+                    <button class="btn btn-outline" id="copy-btn">Copy Text</button>
+                    <button class="btn btn-primary" id="download-btn">Download</button>
+                    <button class="btn btn-outline" id="new-scan-btn">New Scan</button>
+                </div>
+            </div>
+            
+            <div class="results-content">
+                <div class="results-image">
+                    <h3>Original Image</h3>
+                    <div class="image-container">
+                        <img src="{{ file_url }}" alt="Original image" id="original-image">
+                    </div>
+                </div>
+                
+                <div class="results-text">
+                    <h3>Extracted Text</h3>
+                    <div class="text-container" id="extracted-text">
+                        <p>{{ extracted_text }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="results-stats">
+                <div class="stat-item">
+                    <span class="stat-label">Characters:</span>
+                    <span class="stat-value">{{ extracted_text|length }}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Words:</span>
+                    <span class="stat-value">{{ extracted_text|wordcount }}</span>
+                </div>
+            </div>
+            
+            <!-- Enhanced Features Section -->
+            <div class="enhanced-features">
+                <h2>Enhanced Features</h2>
+                
+                <!-- Feature Tabs -->
+                <div class="feature-tabs">
+                    <button class="feature-tab active" data-tab="spelling">Spelling Check</button>
+                    <button class="feature-tab" data-tab="translator">Translator</button>
+                    <button class="feature-tab" data-tab="reader">Text Reader</button>
+                </div>
+                
+                <!-- Spelling Check Tab -->
+                <div class="feature-content active" id="spelling-tab">
+                    <div class="feature-header">
+                        <h3>Spelling Check</h3>
+                        <button class="btn btn-primary" id="check-spelling-btn">Check Spelling</button>
+                    </div>
+
+                    <div class="translation-container hidden" id="spelling-container">
+                        <div class="translation-header">
+                            <h4>Spelling Check Results</h4>
+                            <div class="translation-actions">
+                                <button class="btn btn-small btn-outline" id="copy-btn">Copy</button>
+                                <button class="btn btn-small btn-outline" id="download-btn">Download</button>
+                            </div>
+                        </div>
+                        <div class="translation-text" id="spelling-text">
+                            <p></p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Translator Tab -->
+                <div class="feature-content" id="translator-tab">
+                    <div class="feature-header">
+                        <h3>Text Translator</h3>
+                        <div class="translator-controls">
+                            <select id="translate-language">
+                                {% for code, language in lang.items %}
+                                    <option value="{{ code }}">{{ language }}</option>
+                                {% endfor %}
+                            </select>
+                            <button class="btn btn-primary" id="translate-btn">Translate</button>
+                        </div>
+                    </div>
+                    
+                    <div class="translation-container hidden" id="translation-container">
+                        <div class="translation-header">
+                            <h4>Translation (<span id="translation-language"></span>)</h4>
+                            <div class="translation-actions">
+                                <button class="btn btn-small btn-outline" id="copy-btn">Copy</button>
+                                <button class="btn btn-small btn-outline" id="download-btn">Download</button>
+                            </div>
+                        </div>
+                        
+                        <div class="translation-text" id="translation-text">
+                            <p></p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Text Reader Tab -->
+                <div class="feature-content" id="reader-tab">
+                    <div class="feature-header">
+                        <h3>Text Reader with Translation</h3>
+                        <div class="translator-controls">
+                            <button class="btn btn-primary" id="translate-and-read-btn">Read</button>
+                        </div>
+                    </div>
+
+                    <div class="reader-actions">
+                        <button class="btn btn-outline" id="pause-btn" disabled>Pause</button>
+                        <button class="btn btn-outline" id="stop-btn" disabled>Stop</button>
+                    </div>
+
+                    <div class="translation-container hidden" id="reader-translation-container">
+                        <div class="translation-header">
+                            <h4>Text to Read</h4>
+                        </div>
+                        <div class="translation-text" id="reader-translation-text">
+                            <p></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        let utterance = null; // Store the current utterance
+        let isPaused = false; // Track if the speech is paused
+
+        // Copy Extracted Text
+        document.getElementById("copy-btn").addEventListener("click", function () {
+            const text = document.getElementById("extracted-text").innerText;
+            navigator.clipboard.writeText(text).then(() => alert("Text copied!"));
+        });
+
+        // Download Extracted Text
+        document.getElementById("download-btn").addEventListener("click", function () {
+            const text = document.getElementById("extracted-text").innerText;
+            const blob = new Blob([text], { type: "text/plain" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "OCR_Extracted_Text.txt";
+            link.click();
+        });
+
+        // New Scan (Redirect to upload page)
+        document.getElementById("new-scan-btn").addEventListener("click", function () {
+            window.location.href = "{% url 'upload' %}";
+        });
+
+        // Feature Tabs
+        document.querySelectorAll(".feature-tab").forEach(button => {
+            button.addEventListener("click", function () {
+                document.querySelectorAll(".feature-tab").forEach(btn => btn.classList.remove("active"));
+                document.querySelectorAll(".feature-content").forEach(content => content.classList.remove("active"));
+
+                this.classList.add("active");
+                document.getElementById(this.dataset.tab + "-tab").classList.add("active");
+            });
+        });
+
+        // Spelling Check
+        document.getElementById("check-spelling-btn").addEventListener("click", async function () {
+            const text = document.getElementById("extracted-text").innerText;
+            const response = await fetch("{% url 'spell_check' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token }}"
+                },
+                body: JSON.stringify({ text: text })
+            });
+            const data = await response.json();
+            document.getElementById("spelling-text").innerText = data.corrected_text;
+            document.getElementById("spelling-container").classList.remove("hidden");
+        });
+
+        // Translation
+        document.getElementById("translate-btn").addEventListener("click", async function () {
+            const text = document.getElementById("extracted-text").innerText;
+            const language = document.getElementById("translate-language").value;
+            const response = await fetch("{% url 'translate' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token }}"
+                },
+                body: JSON.stringify({ text: text, language: language })
+            });
+            const data = await response.json();
+            document.getElementById("translation-text").innerText = data.translated_text;
+            document.getElementById("translation-language").innerText = data.language;
+            document.getElementById("translation-container").classList.remove("hidden");
+
+            // Also update the Text Reader section with the translated text
+            document.getElementById("reader-translation-text").innerText = data.translated_text;
+            document.getElementById("reader-translation-container").classList.remove("hidden");
+        });
+
+        // Translate and Read
+        document.getElementById("translate-and-read-btn").addEventListener("click", async function () {
+            const translatedText = document.getElementById("reader-translation-text").innerText; // Translated text
+            const language = document.getElementById("translate-language").value; // Selected language
+
+            try {
+                // Get available voices
+                const voices = await new Promise(resolve => {
+                    const interval = setInterval(() => {
+                        const availableVoices = speechSynthesis.getVoices();
+                        if (availableVoices.length > 0) {
+                            clearInterval(interval);
+                            resolve(availableVoices);
+                        }
+                    }, 100);
+                });
+
+                // Find a voice that matches the target language
+                const targetVoice = voices.find(voice => voice.lang.startsWith(language)) || voices[0];
+
+                // Create and configure the utterance
+                utterance = new SpeechSynthesisUtterance(translatedText);
+                utterance.voice = targetVoice;
+                utterance.rate = 1;
+
+                // Highlight text tracker
+                const words = translatedText.split(" ");
+                utterance.onboundary = function (event) {
+                    const charIndex = event.charIndex;
+                    const highlightedText = words
+                        .map((word, index) => {
+                            const wordStart = translatedText.indexOf(word, index > 0 ? translatedText.indexOf(words[index - 1]) + words[index - 1].length : 0);
+                            const wordEnd = wordStart + word.length;
+                            return charIndex >= wordStart && charIndex < wordEnd
+                                ? `<mark>${word}</mark>`
+                                : word;
+                        })
+                        .join(" ");
+                    document.getElementById("reader-translation-text").innerHTML = highlightedText;
+                };
+
+                utterance.onend = function () {
+                    document.getElementById("pause-btn").disabled = true;
+                    document.getElementById("stop-btn").disabled = true;
+                };
+
+                utterance.onerror = function (event) {
+                    console.error("SpeechSynthesis error:", event.error);
+                };
+
+                // Speak the translated text
+                speechSynthesis.speak(utterance);
+                document.getElementById("pause-btn").disabled = false;
+                document.getElementById("stop-btn").disabled = false;
+            } catch (error) {
+                console.error("Error during speech synthesis:", error);
+                alert("An error occurred. Please try again.");
+            }
+        });
+
+        // Pause Button
+        document.getElementById("pause-btn").addEventListener("click", function () {
+            if (speechSynthesis.speaking && !isPaused) {
+                speechSynthesis.pause();
+                isPaused = true;
+                document.getElementById("pause-btn").innerText = "Resume";
+            } else if (isPaused) {
+                speechSynthesis.resume();
+                isPaused = false;
+                document.getElementById("pause-btn").innerText = "Pause";
+            }
+        });
+
+        // Stop Button
+        document.getElementById("stop-btn").addEventListener("click", function () {
+            if (speechSynthesis.speaking || isPaused) {
+                speechSynthesis.cancel();
+                isPaused = false;
+                utterance = null;
+                document.getElementById("pause-btn").disabled = true;
+                document.getElementById("stop-btn").disabled = true;
+                document.getElementById("pause-btn").innerText = "Pause";
+                document.getElementById("reader-translation-text").innerHTML = document.getElementById("reader-translation-text").innerText; // Remove highlights
+            }
+        });
+
+        // Copy Button for Spelling Check
+        document.querySelector("#spelling-container #copy-btn").addEventListener("click", function () {
+            const text = document.getElementById("spelling-text").innerText; // Get the corrected text
+            navigator.clipboard.writeText(text).then(() => alert("Corrected text copied!"));
+        });
+
+        // Download Button for Spelling Check
+        document.querySelector("#spelling-container #download-btn").addEventListener("click", function () {
+            const text = document.getElementById("spelling-text").innerText; // Get the corrected text
+            const blob = new Blob([text], { type: "text/plain" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "Corrected_Text.txt";
+            link.click();
+        });
+
+        // Copy Button for Translator
+        document.querySelector("#translation-container #copy-btn").addEventListener("click", function () {
+            const text = document.getElementById("translation-text").innerText; // Get the translated text
+            navigator.clipboard.writeText(text).then(() => alert("Translated text copied!"));
+        });
+
+        // Download Button for Translator
+        document.querySelector("#translation-container #download-btn").addEventListener("click", function () {
+            const text = document.getElementById("translation-text").innerText; // Get the translated text
+            const blob = new Blob([text], { type: "text/plain" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "Translated_Text.txt";
+            link.click();
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}OCR - Login{% endblock %}
+
+{% block content %}
+<main>
+    <div class="container auth-container">
+        <div class="auth-tabs">
+            <button class="tab-btn active" id="login-tab">Login</button>
+            <button class="tab-btn" id="signup-tab">Sign Up</button>
+        </div>
+
+        <div class="auth-form-container">
+            <!-- Login Form -->
+            {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                    <div class="alert alert-danger">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            <form id="login-form" class="auth-form" method="POST" action="{% url 'login' %}">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="login-email">Email</label>
+                    <input type="email" name="email" id="login-email" required>
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <input type="password" name="password" id="login-password" required>
+                </div>
+                <div class="form-group">
+                    <a href="{% url 'forgot_password' %}" class="forgot-password">Forgot password?</a>
+                </div>
+                <button type="submit" class="btn btn-primary" style="display: block; margin: 0 auto;">Login</button>
+            </form>
+
+            <!-- Signup Form (hidden by default) -->
+            <form id="signup-form" class="auth-form hidden" method="POST" action="{% url 'signup' %}">
+                {% csrf_token %}
+                <input type="hidden" name="signup" value="true">
+                <div class="form-group">
+                    <label for="signup-name">Full Name</label>
+                    <input type="text" name="name" id="signup-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="signup-email">Email</label>
+                    <input type="email" name="email" id="signup-email" required>
+                </div>
+                <div class="form-group">
+                    <label for="signup-password">Password</label>
+                    <input type="password" name="password" id="signup-password" required>
+                    <div class="password-strength">
+                        <div class="strength-meter">
+                            <div class="strength-meter-fill" id="signup-strength-meter-fill"></div>
+                        </div>
+                        <span id="signup-password-strength-text">Password strength</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="signup-confirm-password">Confirm Password</label>
+                    <input type="password" name="confirm_password" id="signup-confirm-password" required>
+                    <div class="password-match hidden" id="password-match-error">
+                        <span class="error-message">Passwords do not match</span>
+                    </div>
+                    <div class="password-match hidden" id="password-match-success">
+                        <span class="success-message">Passwords match</span>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary" style="display: block; margin: 0 auto;">Create Account</button>
+            </form>
+        </div>
+    </div>
+</main>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .alert {
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 5px;
+        font-weight: bold;
+    }
+    .alert-danger {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    setTimeout(function() {
+        let alerts = document.querySelectorAll('.alert');
+        alerts.forEach(alert => alert.style.display = 'none');
+    }, 3000);
+    
+    // Simple tab switching functionality
+    const loginTab = document.getElementById('login-tab');
+    const signupTab = document.getElementById('signup-tab');
+    const loginForm = document.getElementById('login-form');
+    const signupForm = document.getElementById('signup-form');
+
+    loginTab.addEventListener('click', () => {
+        loginTab.classList.add('active');
+        signupTab.classList.remove('active');
+        loginForm.classList.remove('hidden');
+        signupForm.classList.add('hidden');
+    });
+
+    signupTab.addEventListener('click', () => {
+        signupTab.classList.add('active');
+        loginTab.classList.remove('active');
+        signupForm.classList.remove('hidden');
+        loginForm.classList.add('hidden');
+    });
+
+
+    // signupForm.addEventListener('submit', (e) => {
+    //     e.preventDefault();
+    //     // Validate passwords match
+    //     const password = document.getElementById('signup-password').value;
+    //     const confirmPassword = document.getElementById('signup-confirm-password').value;
+        
+    //     if (password !== confirmPassword) {
+    //         alert('Passwords do not match!');
+    //         return;
+    //     }
+        
+    //     // Check password strength
+    //     const strength = calculatePasswordStrength(password);
+    //     if (strength < 30) {
+    //         if (!confirm('Your password is weak. Are you sure you want to continue?')) {
+    //             return;
+    //         }
+    //     }
+        
+    //     // Get the name for display
+    //     // const fullName = document.getElementById('signup-name').value;
+        
+    //     // Store user info in localStorage
+    //     // localStorage.setItem('isLoggedIn', 'true');
+    //     // localStorage.setItem('username', fullName);
+        
+    //     // Redirect to home page
+    //     // window.location.href = "{% url 'login' %}";
+    // });
+
+    // Password strength meter for signup
+    const signupPasswordInput = document.getElementById('signup-password');
+    const signupStrengthMeterFill = document.getElementById('signup-strength-meter-fill');
+    const signupStrengthText = document.getElementById('signup-password-strength-text');
+    const confirmPasswordInput = document.getElementById('signup-confirm-password');
+    const passwordMatchError = document.getElementById('password-match-error');
+    const passwordMatchSuccess = document.getElementById('password-match-success');
+
+    // Password strength meter
+    signupPasswordInput.addEventListener('input', function() {
+        const password = this.value;
+        const strength = calculatePasswordStrength(password);
+        
+        // Update strength meter
+        signupStrengthMeterFill.style.width = `${strength}%`;
+        
+        // Update color based on strength
+        if (strength < 30) {
+            signupStrengthMeterFill.style.backgroundColor = 'var(--error-color)';
+            signupStrengthText.textContent = 'Weak';
+            signupStrengthText.style.color = 'var(--error-color)';
+        } else if (strength < 60) {
+            signupStrengthMeterFill.style.backgroundColor = 'var(--warning-color)';
+            signupStrengthText.textContent = 'Medium';
+            signupStrengthText.style.color = 'var(--warning-color)';
+        } else {
+            signupStrengthMeterFill.style.backgroundColor = 'var(--success-color)';
+            signupStrengthText.textContent = 'Strong';
+            signupStrengthText.style.color = 'var(--success-color)';
+        }
+        
+        // Check password match if confirm password has value
+        if (confirmPasswordInput.value) {
+            checkPasswordMatch();
+        }
+    });
+
+    // Password match validation
+    confirmPasswordInput.addEventListener('input', checkPasswordMatch);
+
+    function checkPasswordMatch() {
+        const password = signupPasswordInput.value;
+        const confirmPassword = confirmPasswordInput.value;
+        
+        if (!confirmPassword) {
+            passwordMatchError.classList.add('hidden');
+            passwordMatchSuccess.classList.add('hidden');
+            return;
+        }
+        
+        if (password === confirmPassword) {
+            passwordMatchError.classList.add('hidden');
+            passwordMatchSuccess.classList.remove('hidden');
+        } else {
+            passwordMatchError.classList.remove('hidden');
+            passwordMatchSuccess.classList.add('hidden');
+        }
+    }
+
+    // Calculate password strength (simple implementation)
+    function calculatePasswordStrength(password) {
+        if (!password) return 0;
+        
+        let strength = 0;
+        
+        // Length contribution (up to 40%)
+        strength += Math.min(password.length * 4, 40);
+        
+        // Character variety contribution
+        if (/[a-z]/.test(password)) strength += 10; // lowercase
+        if (/[A-Z]/.test(password)) strength += 10; // uppercase
+        if (/[0-9]/.test(password)) strength += 20; // numbers
+        if (/[^a-zA-Z0-9]/.test(password)) strength += 20; // special characters
+        
+        return Math.min(strength, 100);
+    }
+</script>
+{% endblock %}

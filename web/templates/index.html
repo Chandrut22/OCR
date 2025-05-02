@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}OCR - Home{% endblock %}
+
+{% block content %}
+{% if full_name %}
+<div class="user-welcome" id="user-welcome">
+    <div class="container">
+        <h2>Welcome back, <span id="username-display">{{ full_name }}</span>!</h2>
+        <p>Ready to extract text from your images? Upload a new file or check your previous scans.</p>
+        <div class="welcome-actions">
+            <a href="{% url 'upload' %}" class="btn btn-primary">New Scan</a>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<section class="hero">
+    <div class="container">
+        <div class="hero-content">
+            <h1>Extract Text from Images Instantly</h1>
+            <p>Our powerful OCR technology converts images to editable text with high accuracy.</p>
+            <a href="{% url 'upload' %}" class="btn btn-primary">Get Started</a>
+        </div>
+        <div class="hero-image">
+            <img src="{% static 'images/OCR_illustration.png' %}" alt="OCR illustration">
+        </div>
+    </div>
+</section>
+
+<section class="features">
+    <div class="container">
+        <h2 class="section-title">How It Works</h2>
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="feature-icon">1</div>
+                <h3>Upload</h3>
+                <p>Upload any image containing text (JPG, PNG, PDF)</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">2</div>
+                <h3>Process</h3>
+                <p>Our AI analyzes and extracts text from your image</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">3</div>
+                <h3>Download</h3>
+                <p>Get editable text you can copy, edit or download</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="benefits">
+    <div class="container">
+        <h2 class="section-title">Why Choose Our OCR App</h2>
+        <div class="benefits-grid">
+            <div class="benefit-card">
+                <h3>High Accuracy</h3>
+                <p>Advanced AI algorithms ensure precise text recognition</p>
+            </div>
+            <div class="benefit-card">
+                <h3>Multiple Languages</h3>
+                <p>Support for over 20 languages worldwide</p>
+            </div>
+            <div class="benefit-card">
+                <h3>Fast Processing</h3>
+                <p>Get results in seconds, not minutes</p>
+            </div>
+            <div class="benefit-card">
+                <h3>Secure</h3>
+                <p>Your files are encrypted and deleted after processing</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="cta">
+    <div class="container">
+        <h2>Ready to extract text from your images?</h2>
+        <p>Start using our OCR technology today - no credit card required.</p>
+        <a href="{% url 'upload'%}" class="btn btn-primary">Try It Now</a>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const fullName = "{{ full_name }}";
+        const authNavItem = document.getElementById('auth-nav-item');
+        const userWelcome = document.getElementById('user-welcome');
+        const usernameDisplay = document.getElementById('username-display');
+
+        if (fullName) {
+            authNavItem.innerHTML = `
+                <div class="user-dropdown">
+                    <button class="user-dropdown-btn">
+                        <span class="user-avatar">${fullName.charAt(0).toUpperCase()}</span>
+                        <span class="user-name">${fullName}</span>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <div class="dropdown-content">
+                        <a href="#">Profile</a>
+                        <a href="#" onclick="document.getElementById('logout-form').submit();">Logout</a>
+                    </div>
+                </div>
+                <form id="logout-form" action="{% url 'logout' %}" method="POST" style="display: none;">
+                    {% csrf_token %}
+                </form>
+            `;
+
+            userWelcome.classList.remove('hidden');
+            usernameDisplay.textContent = fullName;
+
+            const userDropdownBtn = document.querySelector('.user-dropdown-btn');
+            const dropdownContent = document.querySelector('.dropdown-content');
+
+            userDropdownBtn.addEventListener('click', function() {
+                dropdownContent.classList.toggle('show');
+            });
+
+            window.addEventListener('click', function(e) {
+                if (!e.target.matches('.user-dropdown-btn') && 
+                    !e.target.matches('.user-dropdown-btn *')) {
+                    if (dropdownContent.classList.contains('show')) {
+                        dropdownContent.classList.remove('show');
+                    }
+                }
+            });
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // Send a request to delete the uploaded file when returning to the home page
+        fetch("{% url 'delete_uploaded_file' %}", {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+            },
+        });
+    });
+</script>
+{% endblock %}
